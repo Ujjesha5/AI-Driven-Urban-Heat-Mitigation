@@ -1,8 +1,5 @@
-
 venv/
-
-venv/
-
-data/*.tif
-data/*.tiff
-venv/
+data/raw/*
+data/processed/*.tif
+*.tif
+*.tiff
