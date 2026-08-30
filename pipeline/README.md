@@ -2,10 +2,21 @@
 Data pull scripts for LST, LULC, DEM, and met data. Pulls a full quarterly time series (2023–present) for Mumbai + surrounding region.
 
 ## Run order
+## Week 1:
 1. `pull_lst.py` — Landsat LST, one per quarter. Also writes `data/processed/lst_scene_dates.csv`.
 2. `pull_era5.py` — needs the CSV from step 1, so run this after.
 3. `pull_s2.py` — Sentinel-2 LULC. Independent, run whenever.
 4. `pull_dem.py` — DEM + slope. One-time only, no need to re-run per quarter.
+
+## Week 2:
+1. `ndvi_ndbi.py`
+2. `merge_ghsl.py`
+3. `osm_nx.py`
+
+4. `align_layers.py`
+5. `build_feature_stack.py`
+6. `classify_heat_stress.py` - lst based; i am doubtful of this
+
 
 Exports go straight to Google Drive (`urban_heat_project/...`), not your local disk — download from there into `data/raw/` after running.
 
