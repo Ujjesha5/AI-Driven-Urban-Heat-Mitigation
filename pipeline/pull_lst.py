@@ -27,11 +27,24 @@ def generate_quarters(start_year=2023, end_date=None):
             quarters.append({"start": q_start.isoformat(), "end": q_end.isoformat(), "label": f"{year}_Q{i}"})
         year += 1
 
-def mask_l8_clouds(image):
+def mask_landsat_clouds(image):
+    """Masks Fill, Dilated Cloud, Cirrus, Cloud, and Cloud Shadow -- all 5 relevant
+    QA_PIXEL bits, per USGS Collection 2 guidance. An earlier version of this mask only
+    checked Cloud + Cloud Shadow, which let thin cloud/cirrus edges through and caused
+    physically impossible negative LST readings (verified against a teammate's review
+    flagging a -10.46°C minimum in a Mumbai summer quarter -- see
+    https://www.usgs.gov/landsat-missions/landsat-collection-2-known-issues)."""
     qa = image.select("QA_PIXEL")
-    cloud_shadow_bit = 1 << 4
+    fill_bit = 1 << 0
+    dilated_cloud_bit = 1 << 1
+    cirrus_bit = 1 << 2
     cloud_bit = 1 << 3
-    mask = qa.bitwiseAnd(cloud_shadow_bit).eq(0).And(qa.bitwiseAnd(cloud_bit).eq(0))
+    cloud_shadow_bit = 1 << 4
+    mask = (qa.bitwiseAnd(fill_bit).eq(0)
+            .And(qa.bitwiseAnd(dilated_cloud_bit).eq(0))
+            .And(qa.bitwiseAnd(cirrus_bit).eq(0))
+            .And(qa.bitwiseAnd(cloud_bit).eq(0))
+            .And(qa.bitwiseAnd(cloud_shadow_bit).eq(0)))
     return image.updateMask(mask)
 
 quarters = generate_quarters(start_year=2023)
@@ -52,14 +65,14 @@ for q in quarters:
     print(f"{q['label']}: {n} candidate scenes")
 
     if n == 0:
-        print("  -> no usable scenes (likely monsoon cloud cover), skipping")
+        print(f"  -> no usable scenes (likely monsoon cloud cover), skipping")
         continue
 
     # Cloud-mask each candidate, then mosaic -- fills the full AOI using the least-cloudy
     # pixels available across all scenes/tiles. A single .first() pick can leave large
     # gaps if your AOI spans more than one Landsat tile, or if the "least cloudy overall"
     # scene is still heavily clouded specifically over your area of interest.
-    masked_sorted = collection.map(mask_l8_clouds).sort("CLOUD_COVER")
+    masked_sorted = collection.map(mask_landsat_clouds).sort("CLOUD_COVER")
     mosaic_image = masked_sorted.mosaic()
 
     # Representative date = the least-cloudy contributing scene's acquisition time.
@@ -76,7 +89,7 @@ for q in quarters:
     task = ee.batch.Export.image.toDrive(
         image=lst,
         description=f"mumbai_LST_{q['label']}",
-        folder="urban_heat_project/raw_LST/landsat",
+        folder="urban_heat_project/raw_LST",
         region=city_bbox,
         scale=30,
         crs="EPSG:4326"
