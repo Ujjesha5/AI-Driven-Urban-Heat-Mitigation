@@ -1,0 +1,41 @@
+site_id,zone,description,lat,lon,intervention,baseline_lst_c,post_intervention_lst_c,predicted_reduction_c,cost,cooling_per_cost_ratio
+SITE-001,BKC Commercial Hub,High density corporate district,19.05252,72.87166,Cool roofs (albedo change),43.81,40.88,2.93,5.4,0.543
+SITE-002,BKC Commercial Hub,High density corporate district,19.05349,72.87243,Water body / Wetland creation,44.67,43.72,0.95,27.7,0.034
+SITE-003,BKC Commercial Hub,High density corporate district,19.05885,72.86312,Water body / Wetland creation,44.72,43.68,1.03,21.6,0.048
+SITE-004,BKC Commercial Hub,High density corporate district,19.07546,72.87062,Cool roofs (albedo change),44.72,41.52,3.2,6.8,0.471
+SITE-005,Dharavi / Sion,Dense residential settlement,19.03598,72.83481,Green roofs,44.3,42.46,1.84,21.3,0.086
+SITE-006,Dharavi / Sion,Dense residential settlement,19.0419,72.84987,Green roofs,43.83,42.17,1.65,18.2,0.091
+SITE-007,Dharavi / Sion,Dense residential settlement,19.03492,72.85382,Green roofs,44.13,42.26,1.86,13.3,0.14
+SITE-008,Dharavi / Sion,Dense residential settlement,19.05008,72.85093,Green roofs,44.57,42.74,1.84,17.8,0.103
+SITE-009,Andheri East Industrial,Industrial & logistics corridor,19.13131,72.87164,Tree canopy increase,44.61,42.74,1.87,8.8,0.212
+SITE-010,Andheri East Industrial,Industrial & logistics corridor,19.14997,72.89296,Cool roofs (albedo change),44.76,41.69,3.07,4.7,0.653
+SITE-011,Andheri East Industrial,Industrial & logistics corridor,19.11435,72.86316,Green roofs,43.83,42.17,1.66,19.2,0.086
+SITE-012,Andheri East Industrial,Industrial & logistics corridor,19.10714,72.86851,Green roofs,44.38,42.51,1.87,17.2,0.109
+SITE-013,Kurla Station Ward,Dense transit node,19.08843,72.88415,Cool roofs (albedo change),44.67,41.59,3.08,7.0,0.44
+SITE-014,Kurla Station Ward,Dense transit node,19.07405,72.87704,Cool roofs (albedo change),44.75,41.71,3.04,4.7,0.647
+SITE-015,Kurla Station Ward,Dense transit node,19.06419,72.88486,Water body / Wetland creation,45.03,44.02,1.01,25.1,0.04
+SITE-016,Kurla Station Ward,Dense transit node,19.06655,72.86876,Cool roofs (albedo change),45.78,42.57,3.21,6.2,0.518
+SITE-017,Thane Wagle Estate,Industrial manufacturing area,19.18387,72.96349,Water body / Wetland creation,45.45,44.34,1.11,30.7,0.036
+SITE-018,Thane Wagle Estate,Industrial manufacturing area,19.18049,72.95522,Water body / Wetland creation,45.91,44.62,1.29,29.5,0.044
+SITE-019,Thane Wagle Estate,Industrial manufacturing area,19.18383,72.9538,Tree canopy increase,46.27,44.64,1.62,17.8,0.091
+SITE-020,Thane Wagle Estate,Industrial manufacturing area,19.18816,72.94434,Tree canopy increase,46.4,44.72,1.68,12.2,0.138
+SITE-021,Kalyan-Dombivli Hub,Rapidly urbanizing satellite center,19.20159,73.10073,Green roofs,45.89,44.15,1.74,19.5,0.089
+SITE-022,Kalyan-Dombivli Hub,Rapidly urbanizing satellite center,19.21163,73.0808,Cool roofs (albedo change),44.92,41.9,3.02,8.8,0.343
+SITE-023,Kalyan-Dombivli Hub,Rapidly urbanizing satellite center,19.22765,73.09813,Water body / Wetland creation,45.24,44.07,1.17,23.4,0.05
+SITE-024,Kalyan-Dombivli Hub,Rapidly urbanizing satellite center,19.21291,73.05524,Water body / Wetland creation,45.82,44.71,1.1,20.3,0.054
+SITE-025,Vasai East Zone,Low-albedo industrial pocket,19.3796,72.83317,Tree canopy increase,43.87,42.23,1.64,16.5,0.099
+SITE-026,Vasai East Zone,Low-albedo industrial pocket,19.35096,72.83254,Water body / Wetland creation,44.71,43.83,0.88,31.9,0.028
+SITE-027,Vasai East Zone,Low-albedo industrial pocket,19.36934,72.83565,Water body / Wetland creation,44.93,44.12,0.8,26.2,0.031
+SITE-028,Vasai East Zone,Low-albedo industrial pocket,19.37359,72.83181,Water body / Wetland creation,44.4,43.43,0.96,18.4,0.052
+SITE-029,Navi Mumbai MIDC,Chemical/industrial zone,19.09611,73.03624,Tree canopy increase,47.21,45.46,1.76,9.7,0.181
+SITE-030,Navi Mumbai MIDC,Chemical/industrial zone,19.08859,73.01274,Water body / Wetland creation,45.2,44.4,0.8,17.5,0.046
+SITE-031,Navi Mumbai MIDC,Chemical/industrial zone,19.09919,73.01843,Water body / Wetland creation,46.11,44.83,1.28,15.6,0.082
+SITE-032,Navi Mumbai MIDC,Chemical/industrial zone,19.11825,73.01648,Cool roofs (albedo change),46.29,43.18,3.11,7.1,0.438
+SITE-033,Malad West Link Rd,Commercial corridor,19.1811,72.8522,Tree canopy increase,44.13,42.56,1.57,9.7,0.162
+SITE-034,Malad West Link Rd,Commercial corridor,19.15802,72.84623,Water body / Wetland creation,45.06,44.13,0.93,26.7,0.035
+SITE-035,Malad West Link Rd,Commercial corridor,19.17643,72.81627,Water body / Wetland creation,43.82,42.73,1.09,21.7,0.05
+SITE-036,Malad West Link Rd,Commercial corridor,19.18158,72.85246,Green roofs,44.72,42.93,1.79,15.4,0.116
+SITE-037,Ghatkopar Industrial,High-density concrete cluster,19.08797,72.90009,Green roofs,45.95,44.08,1.87,20.2,0.093
+SITE-038,Ghatkopar Industrial,High-density concrete cluster,19.07007,72.89761,Green roofs,45.84,43.98,1.86,16.3,0.114
+SITE-039,Ghatkopar Industrial,High-density concrete cluster,19.08418,72.89262,Cool roofs (albedo change),45.05,42.12,2.93,8.4,0.349
+SITE-040,Ghatkopar Industrial,High-density concrete cluster,19.07495,72.89588,Cool roofs (albedo change),45.46,42.52,2.94,6.8,0.432

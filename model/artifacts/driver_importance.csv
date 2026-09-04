@@ -1,0 +1,19 @@
+feature,driver,importance,category
+dist_to_coast,Distance to Coastline (km),0.6176331,Spatial Proximity
+dist_to_water,Distance to Water Bodies (km),0.34048536,Spatial Proximity
+sky_view_factor,Sky View Factor (SVF),0.1834204,Topography & Terrain
+dem,Elevation / DEM (m),0.13375579,Topography & Terrain
+building_height,Building Height (m),0.06946491,Urban Morphology
+building_fraction,Building Footprint Density (%),0.04859917,Urban Morphology
+mndwi,MNDWI (Water Index),0.029892359,Spectral / Surface Cover
+slope,Terrain Slope (deg),0.008250589,Topography & Terrain
+roughness_length,Surface Roughness Length (m),0.006386526,Urban Morphology
+dewpoint_2m,2m Dewpoint Temp (°C),0.0063145547,Meteorology
+vapor_pressure_deficit,Vapor Pressure Deficit (kPa),0.0047136745,Meteorology
+albedo,Surface Albedo (Reflectance),0.0046939137,Spectral / Surface Cover
+ndbi,NDBI (Built-up Index),0.0038555942,Spectral / Surface Cover
+wind_speed_10m,10m Wind Speed (m/s),0.002979704,Meteorology
+temp_2m,2m Air Temperature (°C),0.0023177958,Meteorology
+ndvi,NDVI (Vegetation Density),0.0019930333,Spectral / Surface Cover
+solar_radiation,Downwelling Solar Radiation (W/m²),0.0017469742,Meteorology
+dist_to_greenspace,Distance to Green Space (km),0.0010354778,Spatial Proximity

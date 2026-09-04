@@ -1,0 +1,43 @@
+{
+  "bootstrap_ci_95": {
+    "r2_score": {
+      "mean": 0.9924,
+      "ci_lower": 0.992,
+      "ci_upper": 0.9928
+    },
+    "rmse_celsius": {
+      "mean": 0.455,
+      "ci_lower": 0.445,
+      "ci_upper": 0.465
+    },
+    "mae_celsius": {
+      "mean": 0.362,
+      "ci_lower": 0.354,
+      "ci_upper": 0.37
+    }
+  },
+  "physics_violation_summary": {
+    "ndvi": 0.0,
+    "albedo": 0.0,
+    "ndbi": 0.0,
+    "temp_2m": 0.0,
+    "solar_radiation": 0.0,
+    "overall_mean_violation_pct": 0.0
+  },
+  "spatial_slice_analysis": {
+    "Coastal Belt": {
+      "samples": 1402,
+      "mean_actual_lst": 34.83,
+      "mean_pred_lst": 34.82,
+      "rmse": 0.44,
+      "mae": 0.35
+    },
+    "Suburban / Rural Fringe": {
+      "samples": 2598,
+      "mean_actual_lst": 36.81,
+      "mean_pred_lst": 36.79,
+      "rmse": 0.462,
+      "mae": 0.368
+    }
+  }
+}
