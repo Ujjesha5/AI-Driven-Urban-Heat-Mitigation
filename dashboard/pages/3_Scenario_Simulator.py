@@ -1,76 +1,89 @@
-import numpy as np
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
+import pandas as pd
 import streamlit as st
+from theme import apply_theme, top_nav
 
-st.title("Scenario Simulator")
+st.set_page_config(page_title="Scenario Simulator | GreenGrid", layout="wide")
+c = apply_theme()
+top_nav("scenario")
 
-with st.expander("About this page"):
-    st.write(
-        "Simulates the effect of a cooling intervention (e.g., increased tree canopy, cool roofs) "
-        "on Land Surface Temperature within a chosen area. "
-        "Currently showing placeholder data — will be replaced with real InVEST Urban Cooling Model output."
-    )
-
-
-def render_raster_to_png(data, vmin, vmax, out_path, cmap_name="RdYlBu_r"):
-    """Same rendering approach used on the Hotspot Map page, for visual consistency."""
-    cmap = plt.colormaps[cmap_name].copy()
-    cmap.set_bad(color=(0, 0, 0, 0))
-    norm = mcolors.Normalize(vmin=vmin, vmax=vmax, clip=True)
-    rgba = cmap(norm(data))
-    plt.imsave(out_path, rgba)
+st.markdown('<h1>Scenario simulator</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sec-sub">Test interventions before committing budget</p>', unsafe_allow_html=True)
 
 
-# --- DUMMY DATA SECTION ---
-# Person C (or whoever runs InVEST): replace this function with code that:
-#   1. Runs InVEST's Urban Cooling Model on the baseline LULC raster -> "before" array
-#   2. Runs it again on a modified LULC raster (with the intervention applied) -> "after" array
-#   3. Returns both arrays, aligned to the same shape and geographic extent
 @st.cache_data
-def get_dummy_scenario(intervention_pct):
-    rng = np.random.default_rng(seed=7)
-    base = rng.uniform(28, 42, (150, 150))
-    # Fake cooling effect: higher intervention % = more cooling, with some spatial variation
-    cooling_pattern = rng.uniform(0.5, 1.0, (150, 150))
-    after = base - (intervention_pct / 100) * 8 * cooling_pattern
-    return base, after
+def load_candidate_sites():
+    return pd.read_csv("model/artifacts/candidate_intervention_sites.csv", encoding="utf-8")
 
 
-with st.sidebar:
-    st.header("Scenario Controls")
-    intervention_type = st.selectbox(
-        "Intervention type",
-        ["Tree canopy increase", "Cool roofs (albedo change)", "Green roofs", "Water body addition"],
+candidates = load_candidate_sites()
+
+fcol1, fcol2 = st.columns([1, 1])
+with fcol1:
+    zone = st.selectbox("Zone", candidates["zone"].unique().tolist(), label_visibility="collapsed")
+zone_sites = candidates[candidates["zone"] == zone]
+with fcol2:
+    site_id = st.selectbox("Site", zone_sites["site_id"].tolist(), label_visibility="collapsed")
+
+site = candidates[candidates["site_id"] == site_id].iloc[0]
+
+st.markdown(
+    f'<span class="chip">Zone: {zone} ▾</span>'
+    f'<span class="chip">Site: {site_id} ▾</span>'
+    f'<span class="chip">Intervention: {site["intervention"]}</span>',
+    unsafe_allow_html=True,
+)
+st.write("")
+
+main_col, side_col = st.columns([1.6, 1])
+
+with main_col:
+    b_col, a_col = st.columns(2)
+    with b_col:
+        st.markdown(
+            f'<div style="height:100px;border-radius:10px;background:{c["coral"]};color:#fff;'
+            f'padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;">'
+            f'<span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;">BEFORE</span>'
+            f'<span style="font-family:\'IBM Plex Sans\';font-size:22px;">{site["baseline_lst_c"]:.1f}°C</span></div>',
+            unsafe_allow_html=True,
+        )
+    with a_col:
+        st.markdown(
+            f'<div style="height:100px;border-radius:10px;background:{c["green"]};color:#fff;'
+            f'padding:10px 12px;display:flex;flex-direction:column;justify-content:space-between;">'
+            f'<span style="font-size:10px;letter-spacing:1px;text-transform:uppercase;">AFTER</span>'
+            f'<span style="font-family:\'IBM Plex Sans\';font-size:22px;">{site["post_intervention_lst_c"]:.1f}°C</span></div>',
+            unsafe_allow_html=True,
+        )
+
+    st.write("")
+    m1, m2, m3 = st.columns(3)
+    with m1:
+        st.markdown(f'<div class="card"><p class="card-label">Temp reduction</p><p class="stat-lg" style="font-size:18px;color:{c["green_dark"]};">-{site["predicted_reduction_c"]:.2f}°C</p></div>', unsafe_allow_html=True)
+    with m2:
+        st.markdown(f'<div class="card"><p class="card-label">Est. cost</p><p class="stat" style="font-size:18px;">{site["cost"]:.1f}</p></div>', unsafe_allow_html=True)
+    with m3:
+        st.markdown(f'<div class="card"><p class="card-label">Cooling / cost</p><p class="stat" style="font-size:18px;">{site["cooling_per_cost_ratio"]:.3f}</p></div>', unsafe_allow_html=True)
+
+with side_col:
+    st.markdown(
+        f'<div class="card"><p class="card-label">Site</p>'
+        f'<p class="stat" style="font-size:15px;">{site["site_id"]}</p>'
+        f'<p class="card-label" style="margin-top:2px;">{site["description"]}</p></div>',
+        unsafe_allow_html=True,
     )
-    intervention_pct = st.slider("Intervention coverage (% of area)", 0, 100, 20)
 
-before, after = get_dummy_scenario(intervention_pct)
-difference = after - before
-
-vmin, vmax = 20, 42
-render_raster_to_png(before, vmin, vmax, "data/_render_scenario_before.png")
-render_raster_to_png(after, vmin, vmax, "data/_render_scenario_after.png")
-
-st.subheader(f"{intervention_type} — {intervention_pct}% coverage")
-
-col1, col2 = st.columns(2)
-with col1:
-    st.image("data/_render_scenario_before.png", caption="Before intervention", use_container_width=True)
-with col2:
-    st.image("data/_render_scenario_after.png", caption="After intervention", use_container_width=True)
-
-st.divider()
-
-avg_cooling = -difference.mean()
-max_cooling = -difference.min()
-
-m1, m2, m3 = st.columns(3)
-m1.metric("Average cooling", f"{avg_cooling:.2f} °C")
-m2.metric("Max cooling (hottest pixel)", f"{max_cooling:.2f} °C")
-m3.metric("Area covered", f"{intervention_pct}%")
+st.write("")
+st.write("")
+st.markdown('<p class="card-label">All candidate sites in this zone</p>', unsafe_allow_html=True)
+for _, row in zone_sites.iterrows():
+    st.markdown(
+        f'<div class="row"><span>{row["site_id"]} · {row["intervention"]}</span>'
+        f'<span>{row["baseline_lst_c"]:.1f}°C → {row["post_intervention_lst_c"]:.1f}°C '
+        f'(-{row["predicted_reduction_c"]:.2f}°C, cost {row["cost"]:.1f})</span></div>',
+        unsafe_allow_html=True,
+    )
 
 st.caption(
-    "Placeholder data — cooling effect is a simplified formula, not a real physical simulation. "
-    "Will be replaced with real InVEST Urban Cooling Model output once Week 3 setup is complete."
+    "Before/after values are real predictions from the trained Physics-Residual Hybrid model. "
+    "Full raster-level simulation via the InVEST Urban Cooling Model is in progress."
 )

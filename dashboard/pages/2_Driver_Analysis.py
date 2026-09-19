@@ -1,68 +1,110 @@
-import numpy as np
+import json
 import pandas as pd
-import plotly.express as px
 import streamlit as st
+from theme import apply_theme, top_nav
 
-st.title("Driver Analysis")
+st.set_page_config(page_title="Driver Analysis | GreenGrid", layout="wide")
+c = apply_theme()
+top_nav("driver")
 
-with st.expander("About this page"):
-    st.write(
-        "Shows which factors most strongly influence Land Surface Temperature (LST) in a given area, "
-        "based on SHAP (SHapley Additive exPlanations) values from the ML model. "
-        "Currently showing placeholder data — will be replaced with real SHAP output from Person B's trained model."
+st.markdown('<h1>Driver analysis</h1>', unsafe_allow_html=True)
+# max-width:none lets the description run the full width of the page
+st.markdown(
+    '<p class="sec-sub" style="max-width:none;">What\'s driving urban heat across the Mumbai Metropolitan Region — '
+    'ranked by TreeSHAP explainability on the trained Physics-Residual Hybrid model.</p>',
+    unsafe_allow_html=True,
+)
+
+
+@st.cache_data
+def load_driver_importance():
+    df = pd.read_csv("model/artifacts/driver_importance.csv", encoding="utf-8")
+    return df.sort_values("importance", ascending=False)
+
+
+@st.cache_data
+def load_metrics():
+    with open("model/artifacts/metrics.json", encoding="utf-8") as f:
+        return json.load(f)
+
+
+driver_df = load_driver_importance()
+metrics = load_metrics()
+
+bar_colors = [c["coral"], c["blue"], c["coral_tint"], c["green"]]
+BAR_H = 18  # bar thickness in px (was 8)
+
+main_col, side_col = st.columns([1.6, 1])
+
+with main_col:
+    top6 = driver_df.head(6).reset_index(drop=True)
+    max_val = top6["importance"].max()
+
+    # Build the whole card as ONE html string so the bars sit inside the card
+    # (separate st.markdown calls can't share an open <div>).
+    bars_html = (
+        '<div class="card"><p class="card-label" style="margin-bottom:14px;">'
+        'Contribution to heat (relative importance)</p>'
+    )
+    for i, row in top6.iterrows():
+        pct_width = int((row["importance"] / max_val) * 100)
+        bar_color = bar_colors[i % len(bar_colors)]
+        bars_html += (
+            f'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">'
+            f'<span>{row["driver"]}</span><span>{row["importance"]:.3f}</span></div>'
+            f'<div class="bar-bg" style="height:{BAR_H}px;border-radius:{BAR_H // 2}px;">'
+            f'<div class="bar" style="width:{pct_width}%;background:{bar_color};border-radius:{BAR_H // 2}px;"></div></div>'
+            f'<div style="height:16px;"></div>'
+        )
+    bars_html += '</div>'
+    st.markdown(bars_html, unsafe_allow_html=True)
+
+with side_col:
+    top_driver = driver_df.iloc[0]
+    st.markdown(
+        f'<div class="card"><p class="card-label">Top driver</p>'
+        f'<p class="stat-lg" style="font-size:18px;">{top_driver["driver"]}</p>'
+        f'<p class="card-label" style="margin-top:2px;">{top_driver["category"]}</p></div>',
+        unsafe_allow_html=True,
+    )
+    st.write("")
+    st.markdown(
+        f'<div class="card"><p class="card-label">Model</p>'
+        f'<p class="stat" style="font-size:16px;">{metrics["best_model_name"]}</p>'
+        f'<p class="card-label" style="margin-top:2px;">R² {metrics["test_r2"]:.4f} · RMSE {metrics["test_rmse"]:.3f}°C</p></div>',
+        unsafe_allow_html=True,
     )
 
+st.write("")
+st.markdown('<p class="card-label">Full driver ranking</p>', unsafe_allow_html=True)
+for _, row in driver_df.iterrows():
+    st.markdown(
+        f'<div class="row"><span>{row["driver"]}</span><span>{row["importance"]:.3f} · {row["category"]}</span></div>',
+        unsafe_allow_html=True,
+    )
 
-# --- DUMMY DATA SECTION ---
-# Person B: replace this whole function with code that loads your real SHAP values,
-# e.g. from a saved .csv or .pkl file produced by your model training script.
-# Keep the same output shape: a DataFrame with columns "driver" and "importance".
-@st.cache_data
-def get_dummy_driver_importance():
-    drivers = [
-        "Impervious surface %",
-        "NDVI (vegetation)",
-        "Building density",
-        "Distance to water body",
-        "Sky view factor",
-        "NDBI (built-up index)",
-        "Elevation",
-        "Wind speed",
-        "Humidity",
-        "Slope",
-    ]
-    # Random but sorted-looking fake importance values, just for layout purposes
-    rng = np.random.default_rng(seed=42)  # fixed seed so dummy values don't change every rerun
-    importance = np.sort(rng.uniform(0.02, 0.35, len(drivers)))[::-1]
-    return pd.DataFrame({"driver": drivers, "importance": importance})
+st.write("")
+st.write("")
 
+# ---- Model performance ----
+st.markdown('<div class="eyebrow">Model performance</div>', unsafe_allow_html=True)
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("R²", f"{metrics['test_r2']:.4f}")
+m2.metric("RMSE", f"{metrics['test_rmse']:.3f} °C")
+m3.metric("Physics violations", f"{metrics['physics_violation_rate']*100:.1f}%")
+m4.metric("Training samples", f"{metrics['total_training_samples']:,}")
 
-driver_df = get_dummy_driver_importance()
-
-st.subheader("Driver importance ranking")
-
-fig = px.bar(
-    driver_df.sort_values("importance"),
-    x="importance",
-    y="driver",
-    orientation="h",
-    labels={"importance": "Mean |SHAP value| (relative influence on LST)", "driver": ""},
-    color="importance",
-    color_continuous_scale="RdYlBu_r",
-)
-fig.update_layout(coloraxis_showscale=False, height=450, margin=dict(l=10, r=10, t=10, b=10))
-st.plotly_chart(fig, use_container_width=True)
-
+st.write("")
+st.markdown('<p class="card-label">Model comparison</p>', unsafe_allow_html=True)
+comparison_df = pd.DataFrame(metrics["models_summary"])[
+    ["model_name", "r2_score", "rmse_celsius", "physics_violation_rate_pct"]
+].rename(columns={
+    "model_name": "Model", "r2_score": "R²",
+    "rmse_celsius": "RMSE (°C)", "physics_violation_rate_pct": "Physics violation (%)",
+})
+st.dataframe(comparison_df, use_container_width=True, hide_index=True)
 st.caption(
-    "Placeholder data (randomly generated, fixed seed for consistent layout). "
-    "Will be replaced with real SHAP values once Person B's model is trained and validated."
+    "The Physics-Residual Hybrid model achieves the best RMSE while maintaining a 0% physics "
+    "violation rate, unlike unconstrained baselines which show non-zero violations of expected "
+    "physical relationships (e.g., temperature decreasing with NDVI)."
 )
-
-st.divider()
-
-st.subheader("Model validation metrics")
-col1, col2, col3 = st.columns(3)
-col1.metric("RMSE", "—", help="Root Mean Squared Error — pending real model")
-col2.metric("R²", "—", help="Coefficient of determination — pending real model")
-col3.metric("Training samples", "—", help="Number of data points used to train the model")
-st.caption("Metrics will populate once Person B's model training is complete.")

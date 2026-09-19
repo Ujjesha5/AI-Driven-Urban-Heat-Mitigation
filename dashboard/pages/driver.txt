@@ -1,0 +1,81 @@
+import pandas as pd
+import plotly.express as px
+import streamlit as st
+import json
+
+st.title("Driver Analysis")
+
+with st.expander("About this page"):
+    st.write(
+        "Shows which factors most strongly influence Land Surface Temperature (LST) in the Mumbai Metropolitan Region, "
+        "based on TreeSHAP explainability applied to a Physics-Residual Hybrid model. "
+        "Driver rankings, model metrics, and model comparison below are real, trained outputs."
+    )
+
+
+@st.cache_data
+def load_driver_importance():
+    df = pd.read_csv("model/artifacts/driver_importance.csv", encoding="utf-8")
+    return df.sort_values("importance", ascending=False)
+
+
+@st.cache_data
+def load_metrics():
+    with open("model/artifacts/metrics.json", encoding="utf-8") as f:
+        return json.load(f)
+
+
+driver_df = load_driver_importance()
+metrics = load_metrics()
+
+st.subheader("Driver importance ranking")
+
+fig = px.bar(
+    driver_df.sort_values("importance"),
+    x="importance",
+    y="driver",
+    orientation="h",
+    color="category",
+    labels={"importance": "Relative importance (TreeSHAP)", "driver": "", "category": "Category"},
+)
+fig.update_layout(height=550, margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation="h", y=-0.15))
+st.plotly_chart(fig, use_container_width=True)
+
+st.caption(
+    "Distance to coastline and distance to water bodies dominate driver importance, consistent with strong "
+    "sea-breeze moderation in Mumbai's coastal geography. This differs from vegetation/built-up-dominated "
+    "findings in some other-city studies, likely reflecting MMR's specific coastal setting."
+)
+
+st.divider()
+
+st.subheader("Model performance")
+col1, col2, col3 = st.columns(3)
+col1.metric("R²", f"{metrics['test_r2']:.4f}")
+col2.metric("RMSE", f"{metrics['test_rmse']:.3f} °C")
+col3.metric("Training samples", f"{metrics['total_training_samples']:,}")
+
+col4, col5, col6 = st.columns(3)
+col4.metric("MAE", f"{metrics['test_mae']:.3f} °C")
+col5.metric("Physics violation rate", f"{metrics['physics_violation_rate']*100:.1f}%")
+col6.metric("Test samples", f"{metrics['total_test_samples']:,}")
+
+st.caption(f"Best model: {metrics['best_model_name']}")
+
+st.divider()
+
+st.subheader("Model comparison")
+comparison_df = pd.DataFrame(metrics["models_summary"])[
+    ["model_name", "r2_score", "rmse_celsius", "physics_violation_rate_pct"]
+].rename(columns={
+    "model_name": "Model",
+    "r2_score": "R²",
+    "rmse_celsius": "RMSE (°C)",
+    "physics_violation_rate_pct": "Physics violation (%)",
+})
+st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+st.caption(
+    "The Physics-Residual Hybrid model achieves the best RMSE while maintaining a 0% physics violation rate, "
+    "unlike the unconstrained Random Forest and XGBoost baselines, which show non-zero violations of expected "
+    "physical relationships (e.g., temperature decreasing with NDVI)."
+)
