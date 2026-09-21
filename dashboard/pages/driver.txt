@@ -1,16 +1,19 @@
-import pandas as pd
-import plotly.express as px
-import streamlit as st
 import json
+import pandas as pd
+import streamlit as st
+from theme import apply_theme, top_nav
 
-st.title("Driver Analysis")
+st.set_page_config(page_title="Driver Analysis | GreenGrid", layout="wide")
+c = apply_theme()
+top_nav("driver")
 
-with st.expander("About this page"):
-    st.write(
-        "Shows which factors most strongly influence Land Surface Temperature (LST) in the Mumbai Metropolitan Region, "
-        "based on TreeSHAP explainability applied to a Physics-Residual Hybrid model. "
-        "Driver rankings, model metrics, and model comparison below are real, trained outputs."
-    )
+st.markdown('<h1>Driver analysis</h1>', unsafe_allow_html=True)
+# max-width:none lets the description run the full width of the page
+st.markdown(
+    '<p class="sec-sub" style="max-width:none;">What\'s driving urban heat across the Mumbai Metropolitan Region — '
+    'ranked by TreeSHAP explainability on the trained Physics-Residual Hybrid model.</p>',
+    unsafe_allow_html=True,
+)
 
 
 @st.cache_data
@@ -28,54 +31,80 @@ def load_metrics():
 driver_df = load_driver_importance()
 metrics = load_metrics()
 
-st.subheader("Driver importance ranking")
+bar_colors = [c["coral"], c["blue"], c["coral_tint"], c["green"]]
+BAR_H = 18  # bar thickness in px (was 8)
 
-fig = px.bar(
-    driver_df.sort_values("importance"),
-    x="importance",
-    y="driver",
-    orientation="h",
-    color="category",
-    labels={"importance": "Relative importance (TreeSHAP)", "driver": "", "category": "Category"},
-)
-fig.update_layout(height=550, margin=dict(l=10, r=10, t=10, b=10), legend=dict(orientation="h", y=-0.15))
-st.plotly_chart(fig, use_container_width=True)
+main_col, side_col = st.columns([1.6, 1])
 
-st.caption(
-    "Distance to coastline and distance to water bodies dominate driver importance, consistent with strong "
-    "sea-breeze moderation in Mumbai's coastal geography. This differs from vegetation/built-up-dominated "
-    "findings in some other-city studies, likely reflecting MMR's specific coastal setting."
-)
+with main_col:
+    top6 = driver_df.head(6).reset_index(drop=True)
+    max_val = top6["importance"].max()
 
-st.divider()
+    # Build the whole card as ONE html string so the bars sit inside the card
+    # (separate st.markdown calls can't share an open <div>).
+    bars_html = (
+        '<div class="card"><p class="card-label" style="margin-bottom:14px;">'
+        'Contribution to heat (relative importance)</p>'
+    )
+    for i, row in top6.iterrows():
+        pct_width = int((row["importance"] / max_val) * 100)
+        bar_color = bar_colors[i % len(bar_colors)]
+        bars_html += (
+            f'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;">'
+            f'<span>{row["driver"]}</span><span>{row["importance"]:.3f}</span></div>'
+            f'<div class="bar-bg" style="height:{BAR_H}px;border-radius:{BAR_H // 2}px;">'
+            f'<div class="bar" style="width:{pct_width}%;background:{bar_color};border-radius:{BAR_H // 2}px;"></div></div>'
+            f'<div style="height:16px;"></div>'
+        )
+    bars_html += '</div>'
+    st.markdown(bars_html, unsafe_allow_html=True)
 
-st.subheader("Model performance")
-col1, col2, col3 = st.columns(3)
-col1.metric("R²", f"{metrics['test_r2']:.4f}")
-col2.metric("RMSE", f"{metrics['test_rmse']:.3f} °C")
-col3.metric("Training samples", f"{metrics['total_training_samples']:,}")
+with side_col:
+    top_driver = driver_df.iloc[0]
+    st.markdown(
+        f'<div class="card"><p class="card-label">Top driver</p>'
+        f'<p class="stat-lg" style="font-size:18px;">{top_driver["driver"]}</p>'
+        f'<p class="card-label" style="margin-top:2px;">{top_driver["category"]}</p></div>',
+        unsafe_allow_html=True,
+    )
+    st.write("")
+    st.markdown(
+        f'<div class="card"><p class="card-label">Model</p>'
+        f'<p class="stat" style="font-size:16px;">{metrics["best_model_name"]}</p>'
+        f'<p class="card-label" style="margin-top:2px;">R² {metrics["test_r2"]:.4f} · RMSE {metrics["test_rmse"]:.3f}°C</p></div>',
+        unsafe_allow_html=True,
+    )
 
-col4, col5, col6 = st.columns(3)
-col4.metric("MAE", f"{metrics['test_mae']:.3f} °C")
-col5.metric("Physics violation rate", f"{metrics['physics_violation_rate']*100:.1f}%")
-col6.metric("Test samples", f"{metrics['total_test_samples']:,}")
+st.write("")
+st.markdown('<p class="card-label">Full driver ranking</p>', unsafe_allow_html=True)
+for _, row in driver_df.iterrows():
+    st.markdown(
+        f'<div class="row"><span>{row["driver"]}</span><span>{row["importance"]:.3f} · {row["category"]}</span></div>',
+        unsafe_allow_html=True,
+    )
 
-st.caption(f"Best model: {metrics['best_model_name']}")
+st.write("")
+st.write("")
 
-st.divider()
+# ---- Model performance ----
+st.markdown('<div class="eyebrow">Model performance</div>', unsafe_allow_html=True)
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("R²", f"{metrics['test_r2']:.4f}")
+m2.metric("RMSE", f"{metrics['test_rmse']:.3f} °C")
+m3.metric("Physics violations", f"{metrics['physics_violation_rate']*100:.1f}%")
+m4.metric("Training samples", f"{metrics['total_training_samples']:,}")
 
-st.subheader("Model comparison")
+st.write("")
+st.markdown('<p class="card-label">Model comparison</p>', unsafe_allow_html=True)
 comparison_df = pd.DataFrame(metrics["models_summary"])[
     ["model_name", "r2_score", "rmse_celsius", "physics_violation_rate_pct"]
 ].rename(columns={
-    "model_name": "Model",
-    "r2_score": "R²",
-    "rmse_celsius": "RMSE (°C)",
-    "physics_violation_rate_pct": "Physics violation (%)",
+    "model_name": "Model", "r2_score": "R²",
+    "rmse_celsius": "RMSE (°C)", "physics_violation_rate_pct": "Physics violation (%)",
 })
 st.dataframe(comparison_df, use_container_width=True, hide_index=True)
 st.caption(
-    "The Physics-Residual Hybrid model achieves the best RMSE while maintaining a 0% physics violation rate, "
-    "unlike the unconstrained Random Forest and XGBoost baselines, which show non-zero violations of expected "
+    "The Physics-Residual Hybrid model achieves the best RMSE while maintaining a 0% physics "
+    "violation rate, unlike unconstrained baselines which show non-zero violations of expected "
     "physical relationships (e.g., temperature decreasing with NDVI)."
 )

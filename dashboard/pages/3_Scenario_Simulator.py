@@ -87,3 +87,35 @@ st.caption(
     "Before/after values are real predictions from the trained Physics-Residual Hybrid model. "
     "Full raster-level simulation via the InVEST Urban Cooling Model is in progress."
 )
+
+st.write("")
+st.write("")
+st.markdown('<hr class="nav-divider">', unsafe_allow_html=True)
+st.markdown('<div class="eyebrow">City-scale validation</div>', unsafe_allow_html=True)
+st.markdown('<h2 class="sec-title">InVEST Urban Cooling Model — baseline</h2>', unsafe_allow_html=True)
+st.markdown(
+    '<p class="sec-sub">An independent, physics-based simulation of predicted air temperature '
+    'across the MMR, run separately from the ML model above — used to cross-check whether both '
+    'methods agree on where heat concentrates.</p>',
+    unsafe_allow_html=True,
+)
+
+invest_col, stats_col = st.columns([1.6, 1])
+with invest_col:
+    st.image("data/_invest_tair_land_only.png", use_container_width=True,
+              caption="InVEST-predicted air temperature, MMR (water excluded — see note below)")
+
+with stats_col:
+    st.markdown(
+        f'<div class="card"><p class="card-label">City-scale correlation</p>'
+        f'<p class="stat-lg" style="font-size:22px;">r = 0.585</p>'
+        f'<p class="card-label" style="margin-top:2px;">vs. real observed LST, land pixels, p &lt; 0.001</p></div>',
+        unsafe_allow_html=True,
+    )
+    st.write("")
+    st.markdown(
+        f'<div class="card"><p class="card-label">Mean agreement</p>'
+        f'<p class="stat" style="font-size:16px;">31.85°C (InVEST) vs. 31.66°C (real LST)</p></div>',
+        unsafe_allow_html=True,
+    )
+

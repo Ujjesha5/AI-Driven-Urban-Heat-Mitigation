@@ -4,7 +4,7 @@ import streamlit as st
 from streamlit_folium import st_folium
 from theme import apply_theme, top_nav
 
-st.set_page_config(page_title="Optimizer | GreenGrid", layout="wide")
+st.set_page_config(page_title="Optimizer | GreenGrid", layout="wide", page_icon="🌳")
 c = apply_theme()
 top_nav("optimizer")
 
@@ -18,6 +18,10 @@ def load_candidate_sites():
 
 
 def greedy_select(df, budget):
+    """Greedy cost-efficiency ranking: picks the highest cooling-per-cost
+    sites first until the budget runs out. This is a fast heuristic, not a
+    guaranteed globally-optimal knapsack solution — flagged in the UI below
+    so the result isn't mistaken for a true combinatorial optimum."""
     scored = df.copy()
     scored["score"] = scored["predicted_reduction_c"] / scored["cost"]
     scored = scored.sort_values("score", ascending=False)
@@ -29,7 +33,11 @@ def greedy_select(df, budget):
     return pd.DataFrame(chosen_rows), spent
 
 
-candidates = load_candidate_sites()
+try:
+    candidates = load_candidate_sites()
+except Exception:
+    st.error("Couldn't load candidate sites. Check that model/artifacts/candidate_intervention_sites.csv is present.")
+    st.stop()
 
 left_col, right_col = st.columns([1, 1.7])
 
@@ -49,7 +57,8 @@ with left_col:
         "Zones", candidates["zone"].unique().tolist(),
         default=candidates["zone"].unique().tolist(),
     )
-    run = st.button("run optimizer", use_container_width=True)
+    run = st.button("Run optimizer", use_container_width=True)
+    st.caption("Uses a greedy cost-efficiency heuristic (highest cooling-per-cost first) — a fast approximation, not a guaranteed global optimum.")
     st.markdown('</div>', unsafe_allow_html=True)
 
 filtered = candidates[
@@ -87,7 +96,7 @@ with right_col:
         m3.metric("Total cooling", f"{chosen['predicted_reduction_c'].sum():.2f}°C")
 
         csv = chosen.to_csv(index=False).encode("utf-8")
-        st.download_button("export plan", csv, "action_plan.csv", "text/csv")
+        st.download_button("Export plan", csv, "action_plan.csv", "text/csv")
 
 st.write("")
 st.write("")
