@@ -1,9 +1,12 @@
-cat >> .gitignore << 'EOF'
-# Raw rasters -- large, live in the shared Drive folder per pipeline/README.md
-data/mumbai_LST_*.tif
-data/mumbai_DEM.tif
-data/mumbai_slope.tif
+# environments
+venv/
+__pycache__/
 
-# Cached PNG overlays ARE committed -- override the raw-tif rule above for this folder
+# raw rasters (keep out of git)
+*.tif
+*.tiff
+tmp*/
+
+# but keep the pre-rendered cache
 !data/cache/
-EOF
+!data/cache/**
