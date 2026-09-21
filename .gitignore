@@ -1,5 +1,9 @@
-venv/
-data/raw/*
-data/processed/*.tif
-*.tif
-*.tiff
+cat >> .gitignore << 'EOF'
+# Raw rasters -- large, live in the shared Drive folder per pipeline/README.md
+data/mumbai_LST_*.tif
+data/mumbai_DEM.tif
+data/mumbai_slope.tif
+
+# Cached PNG overlays ARE committed -- override the raw-tif rule above for this folder
+!data/cache/
+EOF
