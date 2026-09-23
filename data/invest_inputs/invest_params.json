@@ -1,0 +1,7 @@
+{
+  "et0_raster_path": "data/invest_inputs/et0_constant.tif",
+  "aoi_vector_path": "data/invest_inputs/aoi_boundary.shp",
+  "lulc_raster_path": "data/mumbai_LULC_utm.tif",
+  "t_ref": 24.73,
+  "uhi_max": 11.91
+}

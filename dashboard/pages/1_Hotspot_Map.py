@@ -1,146 +1,111 @@
+import json
 import os
-import re
-import glob
-import numpy as np
-import rasterio
-import matplotlib.colors as mcolors
-import matplotlib.pyplot as plt
 import folium
 from folium.plugins import Fullscreen
 import streamlit as st
 from streamlit_folium import st_folium
+from theme import apply_theme, top_nav
 
-st.title("Hotspot Map")
+st.set_page_config(page_title="Hotspot Maps | GreenGrid", layout="wide")
+c = apply_theme()
+top_nav("hotspot")
 
-with st.expander("About this map"):
-    st.write(
-        "Real LST data for the Mumbai Metropolitan Region (Mumbai, Thane, Vasai-Virar). "
-        "Values are scaled to the 2nd-98th percentile to avoid extreme outlier pixels distorting the color scale."
+st.markdown('<h1>Hotspot maps</h1>', unsafe_allow_html=True)
+st.markdown('<p class="sec-sub">Where heat is worst across Mumbai, Thane, and Vasai-Virar</p>', unsafe_allow_html=True)
+
+CACHE_PATH = "data/cache/raster_cache.json"
+
+# Fallback only used if an older cache predates the legend_gradient_lst field.
+_FALLBACK_LEGEND = [
+    "#313695", "#4575b4", "#74add1", "#abd9e9", "#e0f3f8",
+    "#ffffbf", "#fee090", "#fdae61", "#f46d43", "#d73027", "#a50026",
+]
+
+
+@st.cache_data
+def load_raster_cache():
+    if not os.path.exists(CACHE_PATH):
+        return None
+    with open(CACHE_PATH) as f:
+        return json.load(f)
+
+
+cache = load_raster_cache()
+if not cache or not cache.get("lst_quarters"):
+    st.warning(
+        "No pre-rendered LST data found in data/cache/. Run "
+        "`python dashboard/prerender_rasters.py` locally (with the raw GeoTIFFs "
+        "on disk) and commit the data/cache/ folder."
     )
-
-
-def render_raster_to_png(data, vmin, vmax, out_path, cmap_name="RdYlBu_r"):
-    """Convert a 2D array into a color PNG, making NaN pixels fully transparent."""
-    cmap = plt.colormaps[cmap_name].copy()
-    cmap.set_bad(color=(0, 0, 0, 0))  # transparent for NaN/missing pixels
-    norm = mcolors.Normalize(vmin=vmin, vmax=vmax, clip=True)
-    rgba = cmap(norm(data))
-    plt.imsave(out_path, rgba)
-
-
-@st.cache_data
-def get_available_lst_quarters():
-    """Scan the data folder for whichever LST quarter files actually exist locally."""
-    files = glob.glob("data/mumbai_LST_*.tif")
-    quarters = []
-    for f in files:
-        match = re.search(r"mumbai_LST_(\d{4}_Q\d)\.tif", os.path.basename(f))
-        if match:
-            quarters.append(match.group(1))
-    return sorted(quarters)
-
-
-@st.cache_data
-def load_and_render_lst(quarter):
-    path = f"data/mumbai_LST_{quarter}.tif"
-    with rasterio.open(path) as src:
-        data = src.read(1)
-        bounds = src.bounds
-
-    valid = data[~np.isnan(data)]
-    vmin = float(np.nanpercentile(valid, 2))
-    vmax = float(np.nanpercentile(valid, 98))
-
-    png_path = f"data/_render_lst_{quarter}.png"
-    render_raster_to_png(data, vmin, vmax, png_path)
-
-    map_bounds = [[bounds.bottom, bounds.left], [bounds.top, bounds.right]]
-    center = [(bounds.bottom + bounds.top) / 2, (bounds.left + bounds.right) / 2]
-    return png_path, map_bounds, center, vmin, vmax
-
-
-@st.cache_data
-def load_and_render_dem():
-    path = "data/mumbai_DEM.tif"
-    with rasterio.open(path) as src:
-        data = src.read(1)
-        bounds = src.bounds
-
-    valid = data[~np.isnan(data)]
-    vmin = float(np.nanpercentile(valid, 2))
-    vmax = float(np.nanpercentile(valid, 98))
-
-    png_path = "data/_render_dem.png"
-    render_raster_to_png(data, vmin, vmax, png_path, cmap_name="terrain")
-
-    map_bounds = [[bounds.bottom, bounds.left], [bounds.top, bounds.right]]
-    return png_path, map_bounds, vmin, vmax
-
-
-quarters = get_available_lst_quarters()
-
-if not quarters:
-    st.warning("No LST files found in data/. Add mumbai_LST_<year>_<quarter>.tif files there.")
     st.stop()
 
-# Controls live in the sidebar so they don't eat vertical space above the map
-with st.sidebar:
-    st.header("Hotspot Map Controls")
-    selected_quarter = st.selectbox("Select quarter", quarters, index=len(quarters) - 1)
-    size_option = st.radio("Map size", ["Compact", "Standard", "Large"], index=1)
+quarters = sorted(cache["lst_quarters"].keys())
 
-size_map = {
-    "Compact": (700, 350),
-    "Standard": (900, 550),
-    "Large": (1100, 750),
-}
-map_width, map_height = size_map[size_option]
+# ---- Filter chips (real controls, styled as the chip row from the reference) ----
+fcol1, fcol2 = st.columns([1, 3])
+with fcol1:
+    selected_quarter = st.selectbox("Quarter", quarters, index=len(quarters) - 1, label_visibility="collapsed")
 
-lst_png, lst_bounds, center, lst_vmin, lst_vmax = load_and_render_lst(selected_quarter)
-dem_png, dem_bounds, dem_vmin, dem_vmax = load_and_render_dem()
+lst_info = cache["lst_quarters"][selected_quarter]
+lst_png = os.path.join("data", lst_info["png"])
+lst_bounds = lst_info["bounds"]
+center = lst_info["center"]
+lst_vmin, lst_vmax = lst_info["vmin"], lst_info["vmax"]
 
-m = folium.Map(location=center, zoom_start=11, tiles="cartodbpositron")
-Fullscreen(position="topleft").add_to(m)
+dem_info = cache.get("dem")
 
-folium.raster_layers.ImageOverlay(
-    image=lst_png,
-    bounds=lst_bounds,
-    name=f"Land Surface Temperature — {selected_quarter}",
-    opacity=0.75,
-).add_to(m)
+legend_gradient = ", ".join(cache.get("legend_gradient_lst", _FALLBACK_LEGEND))
 
-folium.raster_layers.ImageOverlay(
-    image=dem_png,
-    bounds=dem_bounds,
-    name="Elevation (DEM)",
-    opacity=0.5,
-    show=False,  # off by default so LST is the focus on load
-).add_to(m)
+st.markdown(
+    f'<span class="chip">Layer: Surface Temp </span>'
+    f'<span class="chip">Quarter: {selected_quarter} </span>'
+    f'<span class="chip">Region: MMR </span>',
+    unsafe_allow_html=True,
+)
+st.write("")
 
-folium.LayerControl(collapsed=True).add_to(m)
+# ---- Map + side stats ----
+map_col, side_col = st.columns([2.3, 1])
 
-legend_html = f"""
-<div style="
-    position: fixed;
-    bottom: 20px;
-    left: 20px;
-    z-index: 9999;
-    background: white;
-    padding: 8px 12px;
-    border: 1px solid #999;
-    border-radius: 4px;
-    font-size: 12px;
-">
-<b style="color:black;">LST — {selected_quarter} (&deg;C, 2nd-98th percentile)</b><br>
-<div style="background: linear-gradient(to right, blue, yellow, red); width: 180px; height: 12px; margin-top:4px;"></div>
-<div style="display:flex; justify-content:space-between; width:180px; color:black;">
-<span>{lst_vmin:.1f}</span><span>{lst_vmax:.1f}</span>
-</div>
-</div>
-"""
-m.get_root().html.add_child(folium.Element(legend_html))
+with map_col:
+    m = folium.Map(location=center, zoom_start=11, tiles="OpenStreetMap")
+    Fullscreen(position="topleft").add_to(m)
+    folium.raster_layers.ImageOverlay(
+        image=lst_png, bounds=lst_bounds,
+        name=f"Land Surface Temperature — {selected_quarter}", opacity=0.75,
+    ).add_to(m)
+    if dem_info:
+        dem_png = os.path.join("data", dem_info["png"])
+        folium.raster_layers.ImageOverlay(
+            image=dem_png, bounds=dem_info["bounds"],
+            name="Elevation (DEM)", opacity=0.5, show=False,
+        ).add_to(m)
+    folium.LayerControl(collapsed=True).add_to(m)
+    st_folium(m, width=None, height=420, use_container_width=True)
 
-st_folium(m, width=map_width, height=map_height)
+with side_col:
+    st.markdown(
+        f'<div class="card"><p class="card-label">Hottest zone</p>'
+        f'<p class="stat-lg" style="font-size:20px;">{lst_vmax:.1f}°C</p>'
+        f'<p class="card-label" style="margin-top:2px;">{selected_quarter}, percentile-clipped max</p></div>',
+        unsafe_allow_html=True,
+    )
+    st.write("")
+    st.markdown(
+        f'<div class="card"><p class="card-label">Coolest zone</p>'
+        f'<p class="stat" style="font-size:20px;">{lst_vmin:.1f}°C</p>'
+        f'<p class="card-label" style="margin-top:2px;">Typically coastal water / green cover</p></div>',
+        unsafe_allow_html=True,
+    )
+    st.write("")
+    st.markdown(
+        f'<div class="card"><p class="card-label">Legend — LST {selected_quarter} (°C)</p>'
+        f'<div style="height:12px;border-radius:4px;margin:8px 0 6px 0;'
+        f'background:linear-gradient(to right,{legend_gradient});"></div>'
+        f'<div style="display:flex;justify-content:space-between;font-size:12.5px;color:{c["slate_60"]};">'
+        f'<span>{lst_vmin:.1f}°C (cooler)</span><span>{lst_vmax:.1f}°C (hotter)</span></div></div>',
+        unsafe_allow_html=True,
+    )
 
 st.caption(
     f"Raw file range this quarter: {lst_vmin:.1f}°C to {lst_vmax:.1f}°C "

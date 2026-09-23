@@ -1,5 +1,12 @@
+# environments
 venv/
-data/raw/*
-data/processed/*.tif
+__pycache__/
+
+# raw rasters (keep out of git)
 *.tif
 *.tiff
+tmp*/
+
+# but keep the pre-rendered cache
+!data/cache/
+!data/cache/**
